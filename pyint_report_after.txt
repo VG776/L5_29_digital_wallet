@@ -1,0 +1,7 @@
+************* Module digital_wallet
+digital_wallet.py:12:0: C0103: Constant name "daily_limit" doesn't conform to UPPER_CASE naming style (invalid-name)
+digital_wallet.py:40:4: W0603: Using the global statement (global-statement)
+
+------------------------------------------------------------------
+Your code has been rated at 9.67/10 (previous run: 5.69/10, +3.98)
+
