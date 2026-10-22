@@ -2,12 +2,15 @@
 """Digital wallet and payment tracker demonstration."""
 
 import hashlib
-import random
+import hmac
+import os
+import secrets
 import tempfile
 from datetime import datetime
 
-GATEWAY_SECRET = "sk_demo_wallet_0000"
+GATEWAY_SECRET = os.environ.get("GATEWAY_SECRET", "")
 WALLET_PIN = "4321"
+PIN_SALT = b"wallet-demo-salt"
 wallet = {"balance": 0.0}
 daily_limit = 1000
 transactions = []
@@ -15,7 +18,9 @@ transactions = []
 
 def hash_pin(pin):
     """Hash a wallet PIN."""
-    return hashlib.sha1(pin.encode()).hexdigest()
+    return hashlib.pbkdf2_hmac(
+        "sha256", pin.encode(), PIN_SALT, 100_000
+    )
 
 
 def add_money(amount, source="UPI", log=None):
@@ -43,7 +48,10 @@ def set_daily_limit(new_limit):
 
 def pay_merchant(merchant, amount, pin):
     """Pay a merchant after validating the PIN and limits."""
-    if hash_pin(pin) != hash_pin(WALLET_PIN):
+    if not hmac.compare_digest(
+        hash_pin(pin, PIN_SALT),
+        hash_pin(WALLET_PIN, PIN_SALT),
+    ):
         print("Wrong PIN for payment to", merchant)
         return False
     if amount > wallet["balance"] or amount > daily_limit:
@@ -76,14 +84,15 @@ def check_gateway(secret):
 
 
 def receipt_path():
-    """Return a temporary receipt path."""
-    # Helper kept for the lab: not called by the demo.
-    return tempfile.mktemp(suffix=".pdf")
+    """Create a secure temporary receipt file."""
+    file_descriptor, path = tempfile.mkstemp(suffix=".pdf")
+    os.close(file_descriptor)
+    return path
 
 
 def main():
     """Run the wallet demonstration."""
-    otp = random.randint(100000, 999999)
+    otp = secrets.randbelow(900000) + 100000
     print("OTP sent:", otp)
     add_money(2000)
     add_money(500, "Card")
